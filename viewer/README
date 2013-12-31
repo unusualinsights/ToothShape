@@ -1,0 +1,18 @@
+Run "./tview" to view a segmented tooth that I created using my naive
+segmentation algorithm, where we repeatedly pick a random vertex on the tooth,
+and take each triangle touching that vertex to be a new segment.  This
+directory contains a working implementation of such a segmentation algorithm.
+
+Files
+-----
+Makefile: the makefile
+modelseg.h, .cpp: Implementation of segmentation algorithm
+plylib.h, .cpp: Downloaded from web for reading PLY files
+viewer.h, .cpp: From web, reads and draws PLY file data as OpenGL triangle mesh
+tview.cubex: Rotating cube example from Edward Angel's OpenGL book (A.12)
+tview.dumbseg: Tooth viewer with dumb segmentation with color, works
+tview.toothbk: Basic tooth and bounding box viewer
+tview.cpp: The main OpenGL program displaying/processing teeth
+tview: The executable
+
+

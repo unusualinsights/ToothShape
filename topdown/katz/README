@@ -1,0 +1,5 @@
+
+MeshSegmenter.java currently contains the slow version of the Katz/Tal algorithm which uses topological distance (i.e. as computed from using Dijkstra's algorithm on the dual graph of the given mesh).
+
+Save MeshSegmenter.java as MeshSegmenter.topo and copy MeshSegmenter.geom to MeshSegmenter.java and compile (javac katz.java) to get this program to run the Katz/Tal algorithm using geometric distance instead of the topological distance described above.  With geometric distance, the algorithm completes in a matter of minutes instead of days.
+

@@ -1,0 +1,173 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{graphicx}
+
+\oddsidemargin 0in
+\evensidemargin 0in
+\textwidth 6.5in
+\topmargin 0in
+\marginparsep .1in
+\textheight 9in
+\headsep 0in
+
+\author{Chand T. John}
+
+\title{$k$-Means Segmentation with Curvature Penalty}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+
+\begin{document}
+\maketitle
+%\large{
+
+% ABSTRACT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{abstract}
+Here we combine Lloyd's $k$-means segmentation algorithm with a segmentation
+algorithm based on geometric distances along with a penalty against including
+high-curvature edges in segments in order to segment human teeth represented
+as closed triangle meshes.
+\end{abstract}
+
+% LLOYD'S ALGORITHM %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Lloyd's Algorithm}
+It is common to want to cluster a given set of points into $k$ different
+groups.  Any algorithm that solves this problem is a $k$-means clustering
+algorithm.  A popular $k$-means clustering algorithm is {\em Lloyd's
+Algorithm} \cite{kmeans}.  In our case, we are clustering faces on a closed
+triangle mesh into $k$ segments rather than clustering points into $k$
+clusters.
+
+Lloyd's Algorithm consists of two stages.  First we must pick an initial
+subdivision of the mesh into $k$ segments, where $k$ is an integer (usually
+greater than 2) picked by the user.  For teeth a typical value is $k=10$.  A
+common initial segmentation method is as follows.  Pick $k$ random faces
+$f_1, \ldots, f_k$ on the mesh.  These faces represent centers of the clusters
+$C_1, \ldots, C_k$, respectively.  Now for each remaining face $f$ on the
+mesh, we find which $f_i$ is closest to $f$ and add $f$ to the cluster $C_i$.
+In the second stage of Lloyd's Algorithm, which we call {\em expectation
+maximization} or EM (due to its similarity to the actual EM algorithm), we
+repeat the following two steps an arbitrary (i.e. user-defined) number of
+times:
+\begin{enumerate}
+\item Recompute the centers $c_1, \ldots, c_k$ of clusters $C_1, \ldots, C_k$.
+\item Recluster the faces of the mesh using the newly computed centers to get
+a new set of clusters $C_1', \ldots, C_k'$.
+\end{enumerate}
+
+% GEOMETRIC SEGMENTATION ALGORITHM %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Geometric Segmentation Algorithm}
+Katz and Tal \cite{katztal} describe a segmentation algorithm for triangle
+meshes that tries to segment out protruding parts of a mesh by incrementally
+choosing $k$ segment centers which are maximally distant from each other (so
+the representative face of a protruding segment will likely be at the
+outermost tip of the segment).  Their paper actually contributes a more
+complex algorithm than the version of the algorithm we will use here:
+\begin{enumerate}
+\item Compute which face's centroid has the greatest sum of distances from all
+other centroids (i.e., find the face which is most protruding of all faces in
+the mesh); label this face as the first representative face $f_1$.
+\item For $i = 2, \ldots, k$: choose $f_i$ to be the face with maximum sum of
+distances from all other representative faces $f_1, \ldots, f_{i-1}$, where
+distance between two faces is defined as the distance between their centroids.
+\item The faces $f_1, \ldots, f_k$ are now representative faces for their
+segments $C_1, \ldots, C_k$, respectively.  Initially, $C_1 = \{f_1\}$,
+$C_2 = \{f_2\}$, and so on.  Now for each face $f$ that has not yet been
+assigned to a segment, compute the distances from $f$ to each
+representative face and choose the face $f_i$ closest to $f$.  Add $f$ to the
+corresponding segment $C_i$.
+\end{enumerate}
+
+% COMBINED GEOMETRIC-LLOYD ALGORITHM %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Combined Geometric-Lloyd Algorithm}
+In either of the two algorithms above, we can use either geometric distances
+or geodesic distances.  Geodesic distances are substantially slower to
+compute but are topologically more relevant.  This can be experimented with
+in implementation.
+
+We can now combine the algorithms so that the Katz-Tal geometric segmentation
+algorithm is used as the initial segmentation and then the expectation
+maximization step of Lloyd's Algorithm is applied to refine the segmentation
+over a number of iterations.
+
+% THE GEODESIC HIGH CURVATURE PENALTY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{The Geodesic High Curvature Penalty}
+The combined Geometric-Lloyd Algorithm consists of two main stages: the
+geometric segmentation stage and the Lloyd algorithm stage.  It is not clear
+how to add a penalty to the initial geometric segmentation stage to prevent
+high-curvature edges from being put into the interior of a segment.  However,
+there is a fairly natural and easily implementable way to add such a penalty
+to the Lloyd algorithm stage.  We now describe how this penalty is measured
+and added to the combined Geometric-Lloyd Algorithm.
+
+The Lloyd algorithm stage consists of simply taking an existing segmentation,
+recomputing the centers of the segments, and resegmenting the shape by putting
+each face in the segment whose center is the closest to the face.  We choose
+to modify this resegmentation stage by instead choosing the segment in which
+to place a particular face by the following method.  For a given face $f$,
+let $c_1$ and $c_2$ be the two centers closest to $f$.  Let $f_1$ and $f_2$ be
+the faces on the mesh closest to $c_1$ and $c_2$, respectively.  Now consider
+the geodesic path $p_1$, i.e. the path along the dual mesh, from face $f$ to
+face $f_1$.  Also consider the path $p_2$ from face $f$ to face $f_2$.  We
+measure how much curvature is on the paths $p_1$ and $p_2$ to decide whether
+$f$ belongs to the segment corresponding to $c_1$ or the segment corresponding
+to $c_2$.  We wish to put $f$ in a segment where the path from $f$ to the
+segment center contains lower curvature edges.  To measure how much curvature
+there is on any such path $p$ through the dual mesh, we use an
+{\em unbelongingness function}
+\[ U(p) = \sum_{\mbox{$f,f'$ consecutive faces in $p$}} (1-\kappa(f,f')) \]
+where $\kappa(f,f')$ is the dot product of the oriented normal vectors of
+faces $f$ and $f'$, which is closer to $-1$ when the curvature of the edge
+between $f$ and $f'$ is higher, and closer to $1$ when the curvature is lower.
+We could experiment with other unbelongingness functions, such as $U(p)=
+\max_{f,f'} \kappa(f,f')$.  We shall stick with our initial unbelongingness
+function for now.  Now when we are deciding what segment to put $f$ into, we
+simply compute $U(p_1)$ and $U(p_2)$ and put $f$ into the segment whose
+geodesic path from its center to $f$ has the lower unbelongingness function
+value.  That is, if $U(p_1) < U(p_2)$, we add $f$ to the segment whose center
+is $c_1$, and otherwise we add $f$ to the segment whose center is $c_2$.
+
+% GEOMETRIC-LLOYD ALGORITHM WITH PENALTY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Geometric-Lloyd Algorithm with Penalty}
+The final algorithm combining the Geometric-Lloyd Algorithm with the
+geodesic high-curvature penalty works as follows.  First, the Katz-Tal
+segmentation algorithm is applied to a closed mesh to obtain an initial
+segmentation of the mesh.  Then the expectation maximization stage of Lloyd's
+Algorithm is applied an arbitrary number of times.  But each time we apply
+a step of expectation maximization, instead of directly putting each face
+into the segment whose center face is nearest to it, we measure the
+unbelongingness of the face to its {\em two} nearest segment centers based on
+its geodesic path to those two centers, and place the face into the segment
+to whose center the face has lower unbelongingness (i.e. the face is placed in
+the segment to whose center the face's geodesic path has lower curvature by
+whatever criterion is used by the unbelongingness function).
+
+% BIBLIOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{thebibliography}{99}
+
+\bibitem{kmeans} T. Kanungo, D. M. Mount, N. S. Netanyahu, C. D. Piatko, R.
+Silverman, A. Y. Wu.  An Efficient $k$-Means Clustering Algorithm: Analysis
+and Implementation.  {\em IEEE Transactions on Pattern Analysis and Machine
+Intelligence}, pp. 881-892, 2002.
+
+\bibitem{katztal} S. Katz, A. Tal.  Hierarchical Mesh Decomposition using
+Fuzzy Clustering and Cuts.  {\em ACM Transactions on Graphics}, Vol. 22 (3),
+pp. 954-961, 2003.
+
+\end{thebibliography}
+
+%} % end of large
+\end{document}
+
+
+

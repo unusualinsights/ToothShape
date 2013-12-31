@@ -1,0 +1,8 @@
+Subdirectories
+--------------
+fmw: Tooth segmentation via fast marching watersheds
+katz: Katz/Tal segmentation using Dijkstra's algorithm
+kkm: Combination of Katz and k-means implementations
+kmeans: Lloyd's algorithm for k-means segmentation
+wshd: Simpler wateshed algorithm, similar to Mangan and Whitaker's method
+

@@ -1,0 +1,5 @@
+Directories
+-----------
+gwh: Garland-Willmott-Heckbert face clustering implementation
+nmerge: Like gwh, but merge segments if resulting segment is "round"
+
